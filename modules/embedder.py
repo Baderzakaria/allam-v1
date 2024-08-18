@@ -4,7 +4,7 @@ import numpy as np
 from langchain_community.embeddings import HuggingFaceEmbeddings
 import torch
 
-class TextEmbedder:
+class Embedd:
     def __init__(self, model_name="sentence-transformers/all-MiniLM-L6-v2", device=None):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")

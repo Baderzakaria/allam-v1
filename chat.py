@@ -3,39 +3,47 @@ from modules.data_loader import DataLoader
 from modules.vector_store_manager import VectorStoreManager
 from modules.QAChain import QAChain
 from modules.splitter import TextSplitter
-from config import UPLOAD_FOLDER, ALLOWED_EXTENSIONS, DATA_BASE
+from config import UPLOAD_FOLDER, DATA_BASE
 
+class Process:
+    def __init__(self):
+        self.vector_store_manager = VectorStoreManager()
 
-def process_chat(user_input, upload_folder):
-    # Load documents
-    loader = DataLoader(loader_type="pdf", directory=upload_folder)
-    documents = loader.load_data()
+    def save(self):
+        loader = DataLoader(loader_type="pdf", directory=UPLOAD_FOLDER)
+        documents = loader.load_data()
 
-    if not documents:
-        print(f"No documents were loaded from {upload_folder}.")
-        return "No documents found or failed to load documents."
+        if not documents:
+            print(f"No documents were loaded from {UPLOAD_FOLDER}.")
+            return "No documents found or failed to load documents."
 
-    print(f"Loaded {len(documents)} documents.")
+        print(f"Loaded {len(documents)} documents.")
 
-    # Split documents into chunks
-    text_splitter = TextSplitter(chunk_size=1000, chunk_overlap=100)
-    texts = text_splitter.split_text(documents)
+        # Split documents into chunks
+        text_splitter = TextSplitter(chunk_size=1000, chunk_overlap=100)
+        texts = text_splitter.split_text(documents)
 
-    # Create embeddings and store in vector store
-    vector_store_manager = VectorStoreManager(model_name="sentence-transformers/all-MiniLM-L6-v2", device="cuda")
-    vector_store_manager.store_embeddings([text.page_content for text in texts])
-    
-    if vector_store_manager.vector_store is None:
-        return "Failed to create vector store. Please check the logs."
+        # Create embeddings and store in vector store
+        self.vector_store_manager = VectorStoreManager(model_name="sentence-transformers/all-MiniLM-L6-v2", device="cuda")
+        self.vector_store_manager.store_embeddings([text.page_content for text in texts])
 
-    vector_store_manager.save_local(DATA_BASE)
+        if self.vector_store_manager.vector_store is None:
+            return "Failed to create vector store. Please check the logs."
 
-    # Retrieve and run QA chain
-    retriever = vector_store_manager.get_retriever()
-    qa_chain = QAChain(model_name="llama3", retriever=retriever)
-    response, source_docs = qa_chain.run(query=user_input, context_chunks=texts)
+        self.vector_store_manager.save_local(DATA_BASE)
 
-    return jsonify({
-        "response": response, 
-        "source_documents": [doc.page_content for doc in source_docs]
-    })
+    def chat(self, user_input):
+        # Load the vector store if not already loaded
+        if self.vector_store_manager.vector_store is None:
+            self.vector_store_manager.load_local(DATA_BASE)
+
+        # Retrieve and run QA chain
+        retriever = self.vector_store_manager.get_retriever()
+        relevant_chunks = retriever.get_relevant_documents(user_input, top_k=5)
+        qa_chain = QAChain(model_name="llama3", retriever=retriever)
+        response, source_docs = qa_chain.run(query=user_input, context_chunks=relevant_chunks)
+
+        return jsonify({
+            "response": response, 
+            "source_documents": [doc.page_content for doc in source_docs]
+        })

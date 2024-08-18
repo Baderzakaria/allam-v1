@@ -13,15 +13,15 @@ def upload_pdf(file):
     # Send file to Flask backend
     files = {"file": file}
     print("Sending file to Flask server...")  # Debugging
-    response = requests.post(f"{FLASK_URL}/", files=files)
+    response = requests.post(f"{FLASK_URL}/upload", files=files)
     print(f"Response status code: {response.status_code}")  # Debugging
 
     if response.status_code == 200:
         st.success("File uploaded successfully!")
+        return True
     else:
         st.error(f"Failed to upload file. Response: {response.json()}")
-    
-    return response
+        return False
 
 def ask_question(question):
     data = {"message": question}
@@ -39,18 +39,20 @@ st.write("Upload a PDF file and ask questions about its content.")
 
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
-if uploaded_file is not None:
-    upload_response = upload_pdf(uploaded_file)
+# Add an upload button
+if st.button("Upload PDF"):
+    if uploaded_file is not None:
+        upload_success = upload_pdf(uploaded_file)
+        if upload_success:
+            st.write("Now, you can ask a question about the document.")
 
-    if upload_response:
-        st.write("Now, you can ask a question about the document.")
-        question = st.text_input("Ask your question here:")
-        
-        if st.button("Ask"):
-            if question.strip():
-                response = ask_question(question)
-                if response:
-                    st.write("### Answer:")
-                    st.write(response)
-            else:
-                st.warning("Please enter a valid question.")
+    else:
+        st.warning("Please upload a file before clicking the upload button.")
+question = st.text_input("Ask your question here:")
+# Add a button to ask a question
+if st.button("Ask"):
+    response = ask_question(question)
+    if response:
+        st.write("### Answer:")
+        st.write(response)
+

@@ -1,7 +1,9 @@
 from langchain.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 import logging
 import os
+from config import UPLOAD_FOLDER , ALLOWED_EXTENSIONS , DATA_BASE
+
 
 class VectorStoreManager:
     def __init__(self, model_name="sentence-transformers/all-MiniLM-L6-v2", device=None):
@@ -35,7 +37,7 @@ class VectorStoreManager:
             self.logger.error(f"Failed to answer question: {e}")
             raise
 
-    def save_local(self, path="vb"):
+    def save_local(self, path=DATA_BASE):
         try:
             if self.vector_store is None:
                 self.logger.error("Vector store is not initialized. Cannot save.")
@@ -53,7 +55,7 @@ class VectorStoreManager:
             self.logger.error(f"Failed to save vector store locally: {e}")
             raise
 
-    def load_local(self, path="vb"):
+    def load_local(self, path=DATA_BASE):
         try:
             if not os.path.exists(path):
                 self.logger.error(f"The path {path} does not exist. Cannot load vector store.")
