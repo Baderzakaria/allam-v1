@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-import os
 
 # Flask server URL
 FLASK_URL = "http://0.0.0.0:5001"
@@ -34,6 +33,21 @@ def ask_question(question):
         st.error("Failed to get a response. Please try again.")
         return None
 
+def fine_tune_model(model_name, output_dir, num_train_epochs):
+    data = {
+        "model_name": model_name,
+        "output_dir": output_dir,
+        "num_train_epochs": num_train_epochs
+    }
+    response = requests.post(f"{FLASK_URL}/fine-tune", json=data)
+    print(f"Fine-tune request status code: {response.status_code}")  # Debugging
+
+    if response.status_code == 200:
+        st.success("Model fine-tuned and saved successfully!")
+    else:
+        st.error("Failed to fine-tune the model. Please try again.")
+
+# Streamlit UI
 st.title("Chat with Your PDF")
 st.write("Upload a PDF file and ask questions about its content.")
 
@@ -45,10 +59,11 @@ if st.button("Upload PDF"):
         upload_success = upload_pdf(uploaded_file)
         if upload_success:
             st.write("Now, you can ask a question about the document.")
-
     else:
         st.warning("Please upload a file before clicking the upload button.")
+
 question = st.text_input("Ask your question here:")
+
 # Add a button to ask a question
 if st.button("Ask"):
     response = ask_question(question)
@@ -56,3 +71,9 @@ if st.button("Ask"):
         st.write("### Answer:")
         st.write(response)
 
+# Fine-tune button
+if st.button("Fine-Tune Model"):
+    model_name = "llama3"  # Replace with your model name
+    output_dir = "./fine_tuned_model"
+    num_train_epochs = 3
+    fine_tune_model(model_name, output_dir, num_train_epochs)

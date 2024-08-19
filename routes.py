@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from chat import Process
 import os
 from config import UPLOAD_FOLDER, ALLOWED_EXTENSIONS
+import mlflow
+import mlflow.pytorch
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -38,3 +40,11 @@ def chat():
     response = process.chat(user_input)
     return response
 
+@app.route("/fine-tune", methods=["POST"])
+def fine_tune():
+    model_name = request.get_json().get("model_name", "llama3")  # Change to LLaMA 3
+    output_dir = request.get_json().get("output_dir", "./fine_tuned_model")
+    num_train_epochs = request.get_json().get("num_train_epochs", 3)
+    
+    process.fine_tune_model(model_name, output_dir, num_train_epochs)
+    return jsonify({"message": "Model fine-tuned and saved successfully."})
